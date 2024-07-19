@@ -14,7 +14,6 @@ type Backend struct {
 	Alive   bool
 }
 
-
 // Interface already holds the reference, so no need to pass pointer to the function
 type Server interface {
 	// Address returns the address with which to access the server
@@ -29,23 +28,28 @@ type Server interface {
 
 type simpleServer struct {
 	addr  string
+	alive bool
 	proxy *httputil.ReverseProxy
 }
 
 func (s *simpleServer) Address() string { return s.addr }
 
-func (s *simpleServer) IsAlive() bool { return true }
+func (s *simpleServer) IsAlive() bool { return s.alive }
 
 func (s *simpleServer) Serve(rw http.ResponseWriter, req *http.Request) {
+	fmt.Printf("Proxying request to %s\n", s.addr)
 	s.proxy.ServeHTTP(rw, req)
 }
 
-func CreateServer(addr string) Server {
+func CreateServer(backend Backend) Server {
+	addr := backend.Address
+	alive := backend.Alive
 	serverUrl, err := url.Parse(addr)
 
 	handleErr(err)
 	return &simpleServer{
-		addr: addr,
+		addr:  addr,
+		alive: alive,
 
 		proxy: httputil.NewSingleHostReverseProxy(serverUrl),
 	}

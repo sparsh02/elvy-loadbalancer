@@ -1,6 +1,7 @@
 package loadbalancer
 
 import (
+	"fmt"
 	"net/http"
 	"sync/atomic"
 )
@@ -45,6 +46,7 @@ func (lb *LoadBalancer) GetNextBackend() *Backend {
 
 func (lb *LoadBalancerServers) GetNextServer() Server {
 	server:= lb.servers[lb.current%len(lb.servers)]
+	fmt.Println("Current server is ", server)
 	
 	for !server.IsAlive(){
 		lb.current++
