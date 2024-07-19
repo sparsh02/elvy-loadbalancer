@@ -14,14 +14,15 @@ type LoadBalancer struct {
 
 type LoadBalancerServers struct {
 	port    string
-	servers  []Server
+	servers []Server
 	current int
 }
+
 func NewLoadBalancerServers(port string, servers []Server) *LoadBalancerServers {
 	return &LoadBalancerServers{
-		port:     port,
+		port:    port,
 		servers: servers,
-		current:  0,
+		current: 0,
 	}
 }
 
@@ -40,15 +41,13 @@ func (lb *LoadBalancer) GetNextBackend() *Backend {
 	return lb.backends[next%uint64(len(lb.backends))]
 }
 
-
-
 // Round R
 
 func (lb *LoadBalancerServers) GetNextServer() Server {
-	server:= lb.servers[lb.current%len(lb.servers)]
+	server := lb.servers[lb.current%len(lb.servers)]
 	fmt.Println("Current server is ", server)
-	
-	for !server.IsAlive(){
+
+	for !server.IsAlive() {
 		lb.current++
 		server = lb.servers[lb.current%len(lb.servers)]
 	}
@@ -61,6 +60,6 @@ func (lb *LoadBalancerServers) ServeProxy(rw http.ResponseWriter, req *http.Requ
 	server.Serve(rw, req)
 }
 
-func (lb *LoadBalancerServers) Port() string{
+func (lb *LoadBalancerServers) Port() string {
 	return lb.port
 }
