@@ -6,6 +6,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"time"
 )
 
 // Pointers needs to be passed to the function
@@ -40,19 +41,33 @@ func (s *simpleServer) Serve(rw http.ResponseWriter, req *http.Request) {
 	fmt.Printf("Proxying request to %s\n", s.addr)
 	s.proxy.ServeHTTP(rw, req)
 }
-
+func (s *simpleServer) checkHealth() {
+	for {
+		resp, errs := http.Get(s.addr)
+		if errs != nil || resp.StatusCode >= 400 {
+			s.alive = false
+		} else {
+			s.alive = true
+		}
+		time.Sleep(30 * time.Second)
+	}
+}
 func CreateServer(backend Backend) Server {
 	addr := backend.Address
 	alive := backend.Alive
 	serverUrl, err := url.Parse(addr)
 
 	handleErr(err)
-	return &simpleServer{
+	server := &simpleServer{
 		addr:  addr,
 		alive: alive,
-
 		proxy: httputil.NewSingleHostReverseProxy(serverUrl),
 	}
+
+	// starting healcheck in separate goroutine
+	// checkHealth will update the alive status of the server
+	server.checkHealth()
+	return server
 }
 
 func handleErr(err error) {
