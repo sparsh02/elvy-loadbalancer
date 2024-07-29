@@ -1,16 +1,14 @@
-type: round_robin
+type: least_conn
 port: 8080
 backends:
-  - address: http://127.0.0.1:8081
+  - address: http://localhost:8081
     alive: true
-  - address: https://yahoo.com
-    alive: false
-  - address: https://google.com
-    alive: true
-  - address: https://bing.com
+  - address: http://localhost:8082
     alive: true
 # backends:
-#   - address: 127.0.0.1:8081
+#   - address: https://yahoo.com
+#     alive: false
+#   - address: https://google.com
 #     alive: true
-#   - address: 127.0.0.1:8082
+#   - address: https://bing.com
 #     alive: true

@@ -22,8 +22,14 @@ func LoadConfig(filename string) (*Config, error) {
 
 	var config Config
 	err = yaml.Unmarshal(data, &config)
+
 	if err != nil {
 		return nil, fmt.Errorf("error parsing config file: %v", err)
+	}
+
+	// setting default algo type
+	if config.Type == "" {
+		config.Type = "round_robin"
 	}
 
 	return &config, nil

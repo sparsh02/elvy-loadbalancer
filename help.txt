@@ -1,1 +1,5 @@
-powershell -Command Add-MpPreference -ExclusionPath "C:\Users\SparshMishra\AppData\Local\Temp"
+Firewall permission : powershell -Command Add-MpPreference -ExclusionPath "C:\Users\{user}\AppData\Local\Temp" 
+
+Algorithm Supported : 
+1. round_robin : Round Robin
+2. least_conn : Least Connection 
