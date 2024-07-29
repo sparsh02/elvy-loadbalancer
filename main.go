@@ -39,6 +39,7 @@ func main() {
 
 	// this function will start the server in a goroutine
 	go func() {
+		log.Println("Starting server on port", config.Port)
 		err := server.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Error starting server: %v", err)
@@ -48,9 +49,7 @@ func main() {
 	fmt.Printf("forwarding request to address %q\n", lb.Port())
 
 	// creating channelm to listen for os signals
-
 	c := make(chan os.Signal, 1)
-
 	signal.Notify(c, os.Interrupt)
 
 	// Block until a signal is received

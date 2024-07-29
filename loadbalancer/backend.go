@@ -66,7 +66,7 @@ func CreateServer(backend Backend) Server {
 
 	// starting healcheck in separate goroutine
 	// checkHealth will update the alive status of the server
-	server.checkHealth()
+	go server.checkHealth()
 	return server
 }
 
