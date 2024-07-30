@@ -1,14 +1,8 @@
 type: least_conn
 port: 8080
+sticky_session : true
 backends:
   - address: http://localhost:8081
     alive: true
   - address: http://localhost:8082
     alive: true
-# backends:
-#   - address: https://yahoo.com
-#     alive: false
-#   - address: https://google.com
-#     alive: true
-#   - address: https://bing.com
-#     alive: true

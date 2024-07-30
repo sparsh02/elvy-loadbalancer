@@ -9,9 +9,10 @@ import (
 )
 
 type Config struct {
-	Type     string                 `yaml:"type"`
-	Port     string                 `yaml:"port"`
-	Backends []loadbalancer.Backend `yaml:"backends"`
+	Type          string                 `yaml:"type"`
+	Port          string                 `yaml:"port"`
+	StickySession bool                   `yaml:"sticky_session"`
+	Backends      []loadbalancer.Backend `yaml:"backends"`
 }
 
 func LoadConfig(filename string) (*Config, error) {
@@ -31,6 +32,10 @@ func LoadConfig(filename string) (*Config, error) {
 	if config.Type == "" {
 		config.Type = "round_robin"
 	}
+	if config.Port == "" {
+		config.Port = "8080"
+	}
+	
 
 	return &config, nil
 }

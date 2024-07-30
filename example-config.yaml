@@ -1,0 +1,8 @@
+type: 
+port: 
+sticky_session : 
+backends:
+  - address:
+    alive: true
+  - address:
+    alive: true

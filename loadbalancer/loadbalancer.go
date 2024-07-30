@@ -2,77 +2,72 @@ package loadbalancer
 
 import (
 	"fmt"
+	"hash/fnv"
+	"net"
 	"net/http"
-	// "sync/atomic"
+	"sync"
 )
 
-// type LoadBalancer struct {
-// 	port     string
-// 	backends []*Backend
-// 	current  uint64
-// }
-
 type LoadBalancerServers struct {
-	port    string
-	servers []Server
-	current int
-	algo    string
+	port        string
+	servers     []Server
+	current     int
+	algo        string
+	sticky      bool
+	stickyTable map[string]Server
+	stickyLock  sync.Mutex
 }
 
-func NewLoadBalancerServers(port string, servers []Server, algo string) *LoadBalancerServers {
+func NewLoadBalancerServers(port string, servers []Server, algo string, stickySession bool) *LoadBalancerServers {
 	return &LoadBalancerServers{
-		port:    port,
-		servers: servers,
-		current: 0,
-		algo:    algo,
+		port:        port,
+		servers:     servers,
+		current:     0,
+		algo:        algo,
+		sticky:      stickySession,
+		stickyTable: make(map[string]Server),
 	}
 }
-
-// func NewLoadBalancer(port string, backends []*Backend) *LoadBalancer {
-// 	return &LoadBalancer{
-// 		port:     port,
-// 		backends: backends,
-// 		current:  0,
-// 	}
-// }
-
-// Round Robin algorithm
-
-// func (lb *LoadBalancer) GetNextBackend() *Backend {
-// 	next := atomic.AddUint64(&lb.current, 1)
-// 	return lb.backends[next%uint64(len(lb.backends))]
-// }
 
 // Getting next server based on the algorithm
 
-func (lb *LoadBalancerServers) GetNextServer() Server {
+func (lb *LoadBalancerServers) GetNextServer(req *http.Request) Server {
 
 	fmt.Printf("Using %s algorithm\n", lb.algo)
+	userIp := getClientIP(req)
+
+	if lb.sticky {
+		lb.stickyLock.Lock()
+		if server, exists := lb.stickyTable[userIp]; exists && server.IsAlive() {
+			lb.stickyLock.Unlock()
+			return server
+		}
+		lb.stickyLock.Unlock()
+	}
+
+	var server Server
 
 	switch lb.algo {
 	case "round_robin":
-		return lb.roundRobin()
+		server = lb.roundRobin()
 	case "least_conn":
-		return lb.leastConn()
+		server = lb.leastConn()
 	case "ip_hash":
-		return lb.iphash()
+		server = lb.iphash(userIp)
 	default:
-		return lb.roundRobin()
+		server = lb.roundRobin()
 	}
 
-	// server := lb.servers[lb.current%len(lb.servers)]
-	// fmt.Println("Current server is ", server)
-
-	// for !server.IsAlive() {
-	// 	lb.current++
-	// 	server = lb.servers[lb.current%len(lb.servers)]
-	// }
-	// lb.current++
-	// return server
+	if lb.sticky {
+		lb.stickyLock.Lock()
+		lb.stickyTable[userIp] = server
+		lb.stickyLock.Unlock()
+	}
+	return server
 }
 
 func (lb *LoadBalancerServers) ServeProxy(rw http.ResponseWriter, req *http.Request) {
-	server := lb.GetNextServer()
+	server := lb.GetNextServer(req)
 	server.Serve(rw, req)
 }
 
@@ -95,7 +90,6 @@ func (lb *LoadBalancerServers) roundRobin() Server {
 }
 
 func (lb *LoadBalancerServers) leastConn() Server {
-	// Implementing least connection algorithm
 
 	var selected Server
 
@@ -112,12 +106,26 @@ func (lb *LoadBalancerServers) leastConn() Server {
 	}
 	return selected
 }
-func (lb *LoadBalancerServers) iphash() Server {
-	// Implementing ip hash algorithm
+func (lb *LoadBalancerServers) iphash(ip string) Server {
 
-	// Get the client IP address
-	// ip:= req
+	hash := fnv.New32a()
+	hash.Write([]byte(ip))
 
-	return lb.roundRobin()
+	index := hash.Sum32() % uint32(len(lb.servers))
+	return lb.servers[index]
+
 }
 
+// Utilities
+
+func getClientIP(req *http.Request) string {
+	ip := req.Header.Get("X-Forwarded-For")
+	if ip == "" {
+		ip = req.Header.Get("X-Real-IP")
+	}
+	if ip == "" {
+		ip, _, _ = net.SplitHostPort(req.RemoteAddr)
+	}
+	userIp := net.ParseIP(ip)
+	return userIp.String()
+}

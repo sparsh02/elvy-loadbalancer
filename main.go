@@ -23,7 +23,7 @@ func main() {
 		servers = append(servers, loadbalancer.CreateServer(backend))
 	}
 
-	lb := loadbalancer.NewLoadBalancerServers(config.Port, servers, config.Type)
+	lb := loadbalancer.NewLoadBalancerServers(config.Port, servers, config.Type, config.StickySession)
 
 	server := &http.Server{
 		Addr: ":" + config.Port,
