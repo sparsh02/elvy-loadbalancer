@@ -3,15 +3,15 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
-	"strconv"
 )
 
 // Global variables to track connections
 var (
 	activeConnections int
-	mu                 sync.Mutex
+	mu                sync.Mutex
 )
 
 // Handler for simulating request processing with delay
@@ -19,7 +19,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	// Simulate varying processing times
 	delay := r.URL.Query().Get("delay")
 	if delay == "" {
-		delay = "5000" // default 5 seconds
+		delay = "1000" // default 5 seconds
 	}
 
 	delayDuration, err := strconv.Atoi(delay)
@@ -38,7 +38,8 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	time.Sleep(time.Duration(delayDuration) * time.Millisecond)
-	fmt.Fprintf(w, "Hello from Server! Active connections: %d", getActiveConnections())
+	fmt.Fprintf(w, "Hello from Server 1 ! Active connections: %d", getActiveConnections())
+	
 }
 
 // Endpoint to get the number of active connections
