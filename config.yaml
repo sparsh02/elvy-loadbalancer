@@ -1,8 +1,14 @@
-type: least_conn
+type: round_robin
 port: 8080
-sticky_session : true
+sticky_session : false
 backends:
   - address: http://localhost:8081
     alive: true
+    rate_limit:
+      enabled: true
+      requests_per_minute: 100
   - address: http://localhost:8082
     alive: true
+    rate_limit:
+      enabled: true
+      requests_per_minute: 100

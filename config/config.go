@@ -35,7 +35,8 @@ func LoadConfig(filename string) (*Config, error) {
 	if config.Port == "" {
 		config.Port = "8080"
 	}
-	
+
+	fmt.Printf("Config: %+v\n", config)
 
 	return &config, nil
 }

@@ -31,7 +31,7 @@ func main() {
 	}
 
 	handleRedirect := func(rw http.ResponseWriter, req *http.Request) {
-		log.Printf("Received request: %s %s\n", req.Method, req.URL)
+		// log.Printf("Received request: %s %s\n", req.Method, req.URL)
 		lb.ServeProxy(rw, req)
 	}
 
@@ -46,7 +46,7 @@ func main() {
 		}
 	}()
 
-	fmt.Printf("forwarding request to address %q\n", lb.Port())
+	// fmt.Printf("forwarding request to address %q\n", lb.Port())
 
 	// creating channelm to listen for os signals
 	c := make(chan os.Signal, 1)

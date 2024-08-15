@@ -8,25 +8,25 @@ import (
 	"os"
 	"sync/atomic"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
-// Pointers needs to be passed to the function
 type Backend struct {
-	Address string
-	Alive   bool
+	Address   string
+	Alive     bool
+	RateLimit RateLimitConfig `yaml:"rate_limit"`
 }
 
-// Interface already holds the reference, so no need to pass pointer to the function
+type RateLimitConfig struct {
+	Enabled           bool `yaml:"enabled"`
+	RequestsPerMinute int  `yaml:"requests_per_minute"`
+}
+
 type Server interface {
-	// Address returns the address with which to access the server
 	Address() string
-
-	// IsAlive returns true if the server is alive and able to serve requests
 	IsAlive() bool
-
-	// Serve uses this server to process the request
 	Serve(rw http.ResponseWriter, req *http.Request)
-
 	ActiveConnections() int
 }
 
@@ -35,6 +35,7 @@ type simpleServer struct {
 	alive          bool
 	proxy          *httputil.ReverseProxy
 	activeRequests int64
+	limiter        *rate.Limiter
 }
 
 func (s *simpleServer) Address() string { return s.addr }
@@ -42,9 +43,13 @@ func (s *simpleServer) Address() string { return s.addr }
 func (s *simpleServer) IsAlive() bool { return s.alive }
 
 func (s *simpleServer) Serve(rw http.ResponseWriter, req *http.Request) {
-	fmt.Printf("Proxying request to %s\n", s.addr)
+	if s.limiter != nil && !s.limiter.Allow() {
+		http.Error(rw, "Too Many Requests", http.StatusTooManyRequests)
+		return
+	}
 	atomic.AddInt64(&s.activeRequests, 1)
 	defer atomic.AddInt64(&s.activeRequests, -1)
+
 	s.proxy.ServeHTTP(rw, req)
 }
 
@@ -54,8 +59,8 @@ func (s *simpleServer) ActiveConnections() int {
 
 func (s *simpleServer) checkHealth() {
 	for {
-		resp, errs := http.Get(s.addr)
-		if errs != nil || resp.StatusCode >= 400 {
+		resp, err := http.Get(s.addr)
+		if err != nil || resp.StatusCode >= 400 {
 			s.alive = false
 		} else {
 			s.alive = true
@@ -63,20 +68,26 @@ func (s *simpleServer) checkHealth() {
 		time.Sleep(30 * time.Second)
 	}
 }
+
 func CreateServer(backend Backend) Server {
 	addr := backend.Address
 	alive := backend.Alive
 	serverUrl, err := url.Parse(addr)
-
 	handleErr(err)
-	server := &simpleServer{
-		addr:  addr,
-		alive: alive,
-		proxy: httputil.NewSingleHostReverseProxy(serverUrl),
+
+	var limiter *rate.Limiter
+	if backend.RateLimit.Enabled {
+
+		limiter = rate.NewLimiter(rate.Limit(float64(backend.RateLimit.RequestsPerMinute)/60.0), backend.RateLimit.RequestsPerMinute)
 	}
 
-	// starting healcheck in separate goroutine
-	// checkHealth will update the alive status of the server
+	server := &simpleServer{
+		addr:    addr,
+		alive:   alive,
+		proxy:   httputil.NewSingleHostReverseProxy(serverUrl),
+		limiter: limiter,
+	}
+
 	go server.checkHealth()
 	return server
 }
