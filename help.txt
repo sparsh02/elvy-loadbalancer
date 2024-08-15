@@ -8,3 +8,22 @@ Algorithm Supported :
 1. round_robin : Round Robin
 2. least_conn : Least Connection 
 3. ip_hash : Ip Hash Algorithm
+
+
+Adding/Deleting servers.
+
+-> Add server endpoint => loadbalancer/add-server
+
+Example Payload : (json)
+{
+  "address": "http://localhost:8083",
+  "alive": true,
+  "rate_limit": {
+    "enabled": true,
+    "requests_per_minute": 5
+  }
+}
+
+-> Delete Server => loadbalancer/delete-server
+Example Payload : (text) 
+"http://localhost:8083"
