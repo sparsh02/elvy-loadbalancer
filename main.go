@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"elvy-loadbalancer/config"
+	"elvy-loadbalancer/handlers"
 	"fmt"
 	"log"
 	"net/http"
@@ -36,6 +37,8 @@ func main() {
 	}
 
 	http.HandleFunc("/", handleRedirect)
+	http.HandleFunc("/add-server", handlers.AddServerHandler(lb))
+	http.HandleFunc("/remove-server", handlers.RemoveServerHandler(lb))
 
 	// this function will start the server in a goroutine
 	go func() {
