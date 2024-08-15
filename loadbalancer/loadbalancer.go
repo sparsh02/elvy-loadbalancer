@@ -16,6 +16,7 @@ type LoadBalancerServers struct {
 	sticky      bool
 	stickyTable map[string]Server
 	stickyLock  sync.Mutex
+	serverLock  sync.RWMutex
 }
 
 func NewLoadBalancerServers(port string, servers []Server, algo string, stickySession bool) *LoadBalancerServers {
@@ -28,6 +29,38 @@ func NewLoadBalancerServers(port string, servers []Server, algo string, stickySe
 		stickyTable: make(map[string]Server),
 	}
 }
+
+func(lb * LoadBalancerServers) AddServer(server Server){
+	lb.serverLock.Lock()
+	defer lb.serverLock.Unlock()
+	lb.servers = append(lb.servers, server)
+	
+}
+
+func (lb *LoadBalancerServers) RemoveServer(address string) {
+	lb.servers = filterServers(lb.servers, func(s Server) bool {
+		return s.Address() != address
+	})
+	if lb.sticky {
+		lb.stickyLock.Lock()
+		defer lb.stickyLock.Unlock()
+	}
+}
+
+// Helper function to filter servers
+func filterServers(servers []Server, predicate func(Server) bool) []Server {
+	var result []Server
+	for _, server := range servers {
+		if predicate(server) {
+			result = append(result, server)
+		}
+	}
+	return result
+}
+
+
+
+
 
 // Getting next server based on the algorithm
 
